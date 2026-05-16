@@ -30,8 +30,7 @@ const cycleCell = (e) => {
 };
 
 async function cloud(data) {
-  try { await setDoc(doc(db,"boyz-party","state"), data); }
-  catch(e) { console.error(e); }
+  await setDoc(doc(db,"boyz-party","state"), data); // let errors bubble up
 }
 
 // ── PIN Modal ─────────────────────────────────────────────────────────────────
@@ -119,7 +118,6 @@ export default function App() {
   const [newMember,setNewMember]       = useState("");
   const [showAddMember,setShowAddMember] = useState(false);
   const [confirmDelete,setConfirmDelete] = useState(null); // member name to delete
-  const [summaryDate,setSummaryDate]   = useState("");     // which date to show in summary
 
   // Fix: skip Firebase snapshot right after our own write to avoid overwriting local state
   const skipSnap = useRef(false);
@@ -134,23 +132,39 @@ export default function App() {
         if (d.sessions) {
           const s = d.sessions;
           setSessions(s);
-          if (!summaryDate && s.length>0) setSummaryDate(s[0].date);
         }
       }
       setLoading(false);
-    },()=>setLoading(false));
+    },(err)=>{
+      setLoading(false);
+      const msg = err?.code==="permission-denied"
+        ? "❌ Firestore Rules error — set rules to allow read/write"
+        : "❌ Firebase connection failed — check firebase.js config";
+      setToast(msg);
+    });
     return ()=>unsub();
   },[]);
 
   // ── Persist helper ──────────────────────────────────────────────────────
+  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""),3000); };
+
   const persist = async (m, s) => {
     setSaving(true);
     skipSnap.current = true;
-    await cloud({ members:m, sessions:s });
-    setTimeout(()=>{ skipSnap.current=false; setSaving(false); }, 1500);
+    try {
+      await cloud({ members:m, sessions:s });
+      setTimeout(()=>{ skipSnap.current=false; setSaving(false); }, 1200);
+    } catch(e) {
+      setSaving(false);
+      skipSnap.current = false;
+      const msg = e?.code === "permission-denied"
+        ? "❌ Firestore Rules blocking writes — fix in Firebase Console"
+        : e?.code === "unavailable"
+        ? "❌ No internet — check connection"
+        : "❌ Save failed: " + (e?.code || e?.message || "Check firebase.js config");
+      showToast(msg);
+    }
   };
-
-  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""),2500); };
 
   // ── Session helpers ─────────────────────────────────────────────────────
   const getEntry = (memberName, date) =>
@@ -188,7 +202,6 @@ export default function App() {
     if (sessions.find(s=>s.date===newDateVal)) { showToast("Date already exists!"); return; }
     const newSessions = [...sessions, {date:newDateVal, entries:{}}].sort((a,b)=>b.date.localeCompare(a.date));
     setSessions(newSessions);
-    if (!summaryDate) setSummaryDate(newDateVal);
     await persist(members, newSessions);
     setShowDatePicker(false);
     showToast(`Added ${fmtShort(newDateVal)} ✓`);
@@ -197,7 +210,6 @@ export default function App() {
   const deleteDate = async (date) => {
     const newSessions = sessions.filter(s=>s.date!==date);
     setSessions(newSessions);
-    if (summaryDate===date) setSummaryDate(newSessions[0]?.date||"");
     await persist(members, newSessions);
     showToast("Date removed ✓");
   };
@@ -422,101 +434,6 @@ export default function App() {
     );
   };
 
-  // ── SUMMARY VIEW ──────────────────────────────────────────────────────────
-  const SummaryView = () => {
-    const session = sessions.find(s=>s.date===summaryDate);
-    const entries = session?.entries || {};
-
-    const paidMembers    = members.filter(n=>entries[n]?.paid);
-    const pendingMembers = members.filter(n=>entries[n]?.result && !entries[n]?.paid);
-    const notSetMembers  = members.filter(n=>!entries[n]?.result);
-    const winners        = members.filter(n=>entries[n]?.result==="W");
-    const losers         = members.filter(n=>entries[n]?.result==="L");
-    const totalColl      = paidMembers.reduce((s,n)=>s+amtFor(entries[n]?.result),0);
-    const totalExp       = members.filter(n=>entries[n]?.result).reduce((s,n)=>s+amtFor(entries[n]?.result),0);
-    const progress       = totalExp>0?Math.round(totalColl/totalExp*100):0;
-
-    const genMsg = () => {
-      const wl = winners.length>0  ? winners.map(n=>`🏆 ${n} — ₹${W_AMT}`).join("\n") : "None";
-      const ll = losers.length>0   ? losers.map(n=>`💀 ${n} — ₹${L_AMT}`).join("\n")  : "None";
-      const pl = paidMembers.length>0    ? paidMembers.map(n=>`✅ ${n} (₹${amtFor(entries[n]?.result)})`).join("\n") : "None yet";
-      const pe = pendingMembers.length>0 ? pendingMembers.map(n=>`⏳ ${n} — ₹${amtFor(entries[n]?.result)} pending`).join("\n") : "All paid! 🎉";
-      return `🍻 *Boyz Party – ${fmtLong(summaryDate)}*\n_Legends Cricket Association_ 🏏\n\n🎮 *Game Results:*\n${wl}\n${ll}\n\n💰 *Collected:* ₹${totalColl} / ₹${totalExp}\n\n✅ *Paid:*\n${pl}\n\n⏳ *Pending:*\n${pe}\n\n_Pay up or next round is on you! 😄_`;
-    };
-
-    return (
-      <div style={{paddingBottom:20}}>
-        {/* Date selector */}
-        <div style={{background:"rgba(255,154,60,0.07)",borderRadius:14,padding:"11px 14px",marginBottom:14,border:"1px solid rgba(255,154,60,0.18)",display:"flex",alignItems:"center",gap:10}}>
-          <span>📅</span>
-          <div style={{flex:1}}>
-            <div style={{color:"rgba(255,200,120,0.4)",fontSize:10,textTransform:"uppercase",letterSpacing:1}}>Viewing Session</div>
-            <div style={{color:"#ff9a3c",fontSize:13,fontWeight:700}}>{fmtFull(summaryDate)||"No sessions yet"}</div>
-          </div>
-          <select value={summaryDate} onChange={e=>setSummaryDate(e.target.value)}
-            style={{background:"rgba(255,154,60,0.12)",border:"1px solid rgba(255,154,60,0.3)",color:"#ff9a3c",padding:"6px 8px",borderRadius:10,fontSize:12,outline:"none",cursor:"pointer"}}>
-            {sessions.map(s=><option key={s.date} value={s.date} style={{background:"#1a0d00"}}>{fmtLong(s.date)}</option>)}
-          </select>
-        </div>
-
-        {sessions.length===0 ? (
-          <div style={{textAlign:"center",padding:"50px 20px"}}>
-            <div style={{fontSize:40,marginBottom:10}}>📭</div>
-            <div style={{color:"rgba(255,200,120,0.4)"}}>No sessions yet — add a date in Tracker</div>
-          </div>
-        ) : (
-          <div style={bigCard}>
-            <div style={{textAlign:"center",borderBottom:"1px solid rgba(255,154,60,0.15)",paddingBottom:14,marginBottom:16}}>
-              <div style={{fontSize:11,color:"rgba(255,200,120,0.45)",letterSpacing:3,textTransform:"uppercase"}}>Legends Cricket Association 🏏</div>
-              <div style={{fontSize:22,fontWeight:900,color:"#ff9a3c",marginTop:4}}>🍻 Boyz Party</div>
-              <div style={{fontSize:13,color:"rgba(255,200,120,0.5)",marginTop:2}}>{fmtFull(summaryDate)}</div>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-              {[
-                {label:"Collected",value:`₹${totalColl}`,sub:`of ₹${totalExp}`,color:"#ffd700"},
-                {label:"Winners 🏆",value:winners.length,sub:`₹${W_AMT} each`,color:"#4ade80"},
-                {label:"Losers 💀", value:losers.length, sub:`₹${L_AMT} each`,color:"#f87171"},
-              ].map((s,i)=>(
-                <div key={i} style={{background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"10px 6px",textAlign:"center",border:`1px solid ${s.color}22`}}>
-                  <div style={{color:s.color,fontSize:20,fontWeight:900}}>{s.value}</div>
-                  <div style={{color:"rgba(255,255,255,0.45)",fontSize:10,textTransform:"uppercase"}}>{s.label}</div>
-                  <div style={{color:"rgba(255,255,255,0.25)",fontSize:10,marginTop:2}}>{s.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <ProgressBar pct={progress}/>
-            <div style={{color:"rgba(255,200,120,0.35)",fontSize:11,textAlign:"center",marginBottom:16}}>{paidMembers.length} paid · {pendingMembers.length} pending · {notSetMembers.length} not set · {progress}%</div>
-
-            <SectionRows title={`✅ PAID (${paidMembers.length})`} titleColor="#4ade80" divColor="rgba(74,222,128,0.2)"
-              items={paidMembers.map(n=>({name:short(n),icon:entries[n]?.result==="W"?"🏆":"💀",amount:amtFor(entries[n]?.result),badge:"PAID",badgeBg:"rgba(74,222,128,0.2)",badgeColor:"#4ade80",rowBg:"rgba(74,222,128,0.06)",rowBorder:"rgba(74,222,128,0.15)",amtColor:entries[n]?.result==="W"?"#4ade80":"#f87171"}))}/>
-
-            <SectionRows title={`⏳ PENDING (${pendingMembers.length})`} titleColor="#f87171" divColor="rgba(248,113,113,0.2)"
-              items={pendingMembers.map(n=>({name:short(n),icon:entries[n]?.result==="W"?"🏆":"💀",amount:amtFor(entries[n]?.result),badge:"DUE",badgeBg:"rgba(248,113,113,0.15)",badgeColor:"#f87171",rowBg:"rgba(248,113,113,0.05)",rowBorder:"rgba(248,113,113,0.15)",amtColor:entries[n]?.result==="W"?"#4ade80":"#f87171"}))}/>
-
-            {notSetMembers.length>0&&(
-              <div style={{marginTop:12}}>
-                <Divider label={`⚪ NOT SET (${notSetMembers.length})`} color="rgba(255,255,255,0.3)" divColor="rgba(255,255,255,0.08)"/>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8}}>
-                  {notSetMembers.map((n,i)=><span key={i} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",color:"rgba(255,255,255,0.35)",fontSize:12,padding:"4px 10px",borderRadius:20}}>{short(n)}</span>)}
-                </div>
-              </div>
-            )}
-
-            {progress===100&&paidMembers.length>0&&(
-              <div style={{textAlign:"center",marginTop:14,padding:"12px",background:"rgba(74,222,128,0.1)",borderRadius:12,border:"1px solid rgba(74,222,128,0.25)"}}>
-                <div style={{fontSize:24}}>🎉</div>
-                <div style={{color:"#4ade80",fontSize:15,fontWeight:700}}>All collected! Cheers! 🍻</div>
-              </div>
-            )}
-          </div>
-        )}
-        {sessions.length>0&&<button onClick={()=>copyText(genMsg())} style={btnWhatsApp}>📲 Copy WhatsApp Message</button>}
-      </div>
-    );
-  };
-
   // ── ALL DAYS VIEW ─────────────────────────────────────────────────────────
   const AllDaysView = () => {
     const [expanded,setExpanded]=useState(null);
@@ -681,7 +598,7 @@ export default function App() {
     </div>
   );
 
-  const tabs=[["tracker","🎮 Tracker"],["summary","📊 Today"],["alldays","📅 All Days"]];
+  const tabs=[["tracker","🎮 Tracker"],["alldays","📅 All Days"]];
 
   return (
     <div style={{minHeight:"100vh",background:BG,fontFamily:"'Segoe UI',sans-serif",paddingBottom:40}}>
@@ -705,7 +622,7 @@ export default function App() {
       )}
 
       {/* Toast */}
-      {toast&&<div style={{position:"fixed",top:24,left:"50%",transform:"translateX(-50%)",background:"#0a0f1a",color:"#fff",padding:"10px 22px",borderRadius:30,fontSize:14,zIndex:999,boxShadow:"0 4px 24px rgba(255,120,0,0.4)",border:"1px solid rgba(255,150,50,0.4)",whiteSpace:"nowrap"}}>{toast}</div>}
+      {toast&&<div style={{position:"fixed",top:24,left:"50%",transform:"translateX(-50%)",background:"#0a0f1a",color:"#fff",padding:"12px 20px",borderRadius:16,fontSize:13,zIndex:999,boxShadow:`0 4px 24px ${toast.startsWith("❌")?"rgba(248,113,113,0.4)":"rgba(255,120,0,0.4)"}`,border:`1px solid ${toast.startsWith("❌")?"rgba(248,113,113,0.5)":"rgba(255,150,50,0.4)"}`,maxWidth:"90vw",textAlign:"center",lineHeight:1.4}}>{toast}</div>}
 
       {/* Header */}
       <div style={{textAlign:"center",padding:"22px 16px 10px",position:"relative"}}>
@@ -729,7 +646,6 @@ export default function App() {
 
       <div style={{padding:"0 16px"}}>
         {tab==="tracker"&&<TrackerView/>}
-        {tab==="summary"&&<SummaryView/>}
         {tab==="alldays"&&<AllDaysView/>}
       </div>
     </div>
