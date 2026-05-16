@@ -701,108 +701,147 @@ export default function App() {
       {/* ── Hidden scorecard rendered off-screen for screenshot ── */}
       {allCardData && (
         <div style={{position:"fixed",left:"-9999px",top:0,zIndex:-1}}>
-          <div ref={allCardRef} style={{width:380,background:"#0a0f1a",padding:"24px 20px",fontFamily:"'Segoe UI',sans-serif"}}>
-            {/* Header */}
-            <div style={{textAlign:"center",marginBottom:20,paddingBottom:16,borderBottom:"1px solid rgba(255,154,60,0.3)"}}>
-              <div style={{fontSize:28,marginBottom:4}}>🏏🍻</div>
-              <div style={{color:"#ff9a3c",fontSize:20,fontWeight:900,letterSpacing:-0.5}}>Boyz Party</div>
-              <div style={{color:"rgba(255,200,120,0.5)",fontSize:11,letterSpacing:2,textTransform:"uppercase",marginTop:3}}>Legends Cricket Association</div>
-              <div style={{color:"rgba(255,200,120,0.35)",fontSize:12,marginTop:6}}>{sessions.length} sessions · Till Date</div>
-            </div>
+          <div ref={allCardRef} style={{
+            background:"#0d1a0d",
+            padding:"22px 18px 18px",
+            fontFamily:"'Segoe UI',Arial,sans-serif",
+            width: Math.max(420, 220 + sessions.length * 52) + "px",
+          }}>
 
-            {/* Grand totals */}
-            <div style={{display:"flex",gap:8,marginBottom:20}}>
-              {[
-                {label:"Collected",value:`₹${grandTotal}`,color:"#ffd700",bg:"rgba(255,215,0,0.1)"},
-                {label:"Expected", value:`₹${grandExpected}`,color:"#ff9a3c",bg:"rgba(255,154,60,0.1)"},
-                {label:"Pending",  value:`₹${grandDue}`, color:grandDue>0?"#f87171":"#4ade80",bg:grandDue>0?"rgba(248,113,113,0.1)":"rgba(74,222,128,0.1)"},
-              ].map((s,i)=>(
-                <div key={i} style={{flex:1,background:s.bg,borderRadius:10,padding:"10px 6px",textAlign:"center",border:`1px solid ${s.color}33`}}>
-                  <div style={{color:s.color,fontSize:16,fontWeight:900}}>{s.value}</div>
-                  <div style={{color:"rgba(255,255,255,0.4)",fontSize:9,textTransform:"uppercase",marginTop:2}}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Member table */}
-            <div style={{borderRadius:12,overflow:"hidden",border:"1px solid rgba(255,154,60,0.2)"}}>
-              {/* Table header */}
-              <div style={{display:"flex",background:"rgba(255,154,60,0.15)",padding:"8px 12px"}}>
-                <div style={{flex:1,color:"#ff9a3c",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>Member</div>
-                <div style={{width:50,textAlign:"center",color:"#4ade80",fontSize:11,fontWeight:700}}>🏆 W</div>
-                <div style={{width:50,textAlign:"center",color:"#f87171",fontSize:11,fontWeight:700}}>💀 L</div>
-                <div style={{width:60,textAlign:"right",color:"#ffd700",fontSize:11,fontWeight:700}}>Paid</div>
-                <div style={{width:55,textAlign:"right",color:"#f87171",fontSize:11,fontWeight:700}}>Due</div>
-              </div>
-
-              {/* Member rows */}
-              {allCardData.map((m,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",padding:"10px 12px",background:i%2===0?"rgba(255,255,255,0.02)":"transparent",borderTop:"1px solid rgba(255,255,255,0.04)"}}>
-                  <div style={{flex:1}}>
-                    <div style={{color:"#fff",fontSize:13,fontWeight:600}}>{short(m.name)}</div>
-                    <div style={{color:"rgba(255,255,255,0.3)",fontSize:10}}>{m.days} sessions</div>
+            {/* ── Header ── */}
+            <div style={{textAlign:"center",marginBottom:18,paddingBottom:14,borderBottom:"2px solid rgba(255,154,60,0.4)"}}>
+              <div style={{fontSize:26,marginBottom:3}}>🏏🍻</div>
+              <div style={{color:"#ff9a3c",fontSize:22,fontWeight:900,letterSpacing:-0.5}}>Boyz Party</div>
+              <div style={{color:"rgba(255,200,120,0.55)",fontSize:11,letterSpacing:2.5,textTransform:"uppercase",marginTop:3}}>Legends Cricket Association</div>
+              <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:12}}>
+                {[
+                  {label:"Sessions",value:sessions.length,color:"#ff9a3c"},
+                  {label:"Collected",value:`₹${grandTotal}`,color:"#ffd700"},
+                  {label:"Pending", value:`₹${grandDue}`,  color:grandDue>0?"#f87171":"#4ade80"},
+                ].map((s,i)=>(
+                  <div key={i} style={{textAlign:"center"}}>
+                    <div style={{color:s.color,fontSize:17,fontWeight:900}}>{s.value}</div>
+                    <div style={{color:"rgba(255,255,255,0.35)",fontSize:9,textTransform:"uppercase",letterSpacing:1}}>{s.label}</div>
                   </div>
-                  <div style={{width:50,textAlign:"center",color:"#4ade80",fontSize:14,fontWeight:700}}>{m.wins}</div>
-                  <div style={{width:50,textAlign:"center",color:"#f87171",fontSize:14,fontWeight:700}}>{m.losses}</div>
-                  <div style={{width:60,textAlign:"right",color:"#ffd700",fontSize:14,fontWeight:800}}>₹{m.paid}</div>
-                  <div style={{width:55,textAlign:"right",color:m.due>0?"#f87171":"rgba(74,222,128,0.5)",fontSize:14,fontWeight:800}}>₹{m.due}</div>
-                </div>
-              ))}
-
-              {/* Totals row */}
-              <div style={{display:"flex",alignItems:"center",padding:"10px 12px",background:"rgba(255,154,60,0.1)",borderTop:"1px solid rgba(255,154,60,0.25)"}}>
-                <div style={{flex:1,color:"#ff9a3c",fontSize:13,fontWeight:700}}>TOTAL</div>
-                <div style={{width:50}}/>
-                <div style={{width:50}}/>
-                <div style={{width:60,textAlign:"right",color:"#ffd700",fontSize:15,fontWeight:900}}>₹{grandTotal}</div>
-                <div style={{width:55,textAlign:"right",color:grandDue>0?"#f87171":"#4ade80",fontSize:15,fontWeight:900}}>₹{grandDue}</div>
+                ))}
               </div>
             </div>
 
-            {/* Date grid */}
-            {sessions.length>0&&(
-              <div style={{marginTop:20}}>
-                <div style={{color:"rgba(255,200,120,0.4)",fontSize:10,textTransform:"uppercase",letterSpacing:1,marginBottom:10,textAlign:"center"}}>Game Results by Date</div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{borderCollapse:"collapse",width:"100%"}}>
-                    <thead>
-                      <tr>
-                        <th style={{color:"rgba(255,200,120,0.5)",fontSize:10,fontWeight:600,textAlign:"left",padding:"4px 6px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>Name</th>
-                        {sessions.map(s=>(
-                          <th key={s.date} style={{color:"#ff9a3c",fontSize:10,fontWeight:700,textAlign:"center",padding:"4px 4px",borderBottom:"1px solid rgba(255,255,255,0.08)",whiteSpace:"nowrap"}}>{fmtShort(s.date)}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {members.map((name,mi)=>(
-                        <tr key={name} style={{background:mi%2===0?"rgba(255,255,255,0.015)":"transparent"}}>
-                          <td style={{color:"#fff",fontSize:11,padding:"5px 6px",borderBottom:"1px solid rgba(255,255,255,0.04)",whiteSpace:"nowrap"}}>{short(name)}</td>
-                          {sessions.map(s=>{
-                            const e=s.entries?.[name];
-                            const isW=e?.result==="W"; const isL=e?.result==="L";
-                            return (
-                              <td key={s.date} style={{textAlign:"center",padding:"5px 4px",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-                                {e?.result ? (
-                                  <span style={{display:"inline-block",width:28,height:22,lineHeight:"22px",borderRadius:5,fontSize:10,fontWeight:800,textAlign:"center",
-                                    background:isW?(e.paid?"rgba(74,222,128,0.3)":"rgba(74,222,128,0.08)"):(e.paid?"rgba(248,113,113,0.3)":"rgba(248,113,113,0.08)"),
-                                    color:isW?"#4ade80":"#f87171",
-                                    border:`1px solid ${isW?(e.paid?"#4ade80":"rgba(74,222,128,0.3)"):(e.paid?"#f87171":"rgba(248,113,113,0.3)")}`
-                                  }}>{e.result}{e.paid?"✓":""}</span>
-                                ) : <span style={{color:"rgba(255,255,255,0.15)",fontSize:10}}>—</span>}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {/* ── Single combined table ── */}
+            <table style={{borderCollapse:"collapse",width:"100%",tableLayout:"auto"}}>
+              <thead>
+                <tr style={{background:"rgba(255,154,60,0.18)"}}>
+                  {/* Name */}
+                  <th style={{...cth, textAlign:"left", paddingLeft:10, color:"#ff9a3c", minWidth:90}}>Name</th>
+                  {/* Date columns */}
+                  {sessions.map(s=>(
+                    <th key={s.date} style={{...cth, color:"#ff9a3c", minWidth:46}}>
+                      <div>{fmtShort(s.date).split(" ")[0]}</div>
+                      <div style={{fontSize:9,opacity:0.7}}>{fmtShort(s.date).split(" ")[1]||""}</div>
+                    </th>
+                  ))}
+                  {/* Totals */}
+                  <th style={{...cth, color:"#4ade80",  minWidth:34, borderLeft:"1px solid rgba(255,255,255,0.1)"}}>🏆</th>
+                  <th style={{...cth, color:"#f87171",  minWidth:34}}>💀</th>
+                  <th style={{...cth, color:"#ffd700",  minWidth:52, borderLeft:"1px solid rgba(255,255,255,0.1)"}}>Paid</th>
+                  <th style={{...cth, color:"#f87171",  minWidth:48}}>Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((name, mi) => {
+                  const t = allCardData.find(m=>m.name===name) || {wins:0,losses:0,paid:0,due:0};
+                  const isEven = mi%2===0;
+                  return (
+                    <tr key={name} style={{background:isEven?"rgba(255,255,255,0.025)":"transparent"}}>
+                      {/* Name cell */}
+                      <td style={{...ctd, paddingLeft:10, paddingRight:6}}>
+                        <div style={{color:"#fff",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{short(name)}</div>
+                      </td>
+
+                      {/* Date result cells */}
+                      {sessions.map(s=>{
+                        const e = s.entries?.[name];
+                        const isW = e?.result==="W";
+                        return (
+                          <td key={s.date} style={{...ctd, textAlign:"center", padding:"5px 3px"}}>
+                            {e?.result ? (
+                              <div style={{
+                                display:"inline-flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                                width:36,height:30,borderRadius:6,
+                                background: isW?(e.paid?"rgba(74,222,128,0.28)":"rgba(74,222,128,0.07)"):(e.paid?"rgba(248,113,113,0.28)":"rgba(248,113,113,0.07)"),
+                                border:`1.5px solid ${isW?(e.paid?"#4ade80":"rgba(74,222,128,0.35)"):(e.paid?"#f87171":"rgba(248,113,113,0.35)")}`,
+                                boxShadow: e.paid?`0 0 6px ${isW?"rgba(74,222,128,0.25)":"rgba(248,113,113,0.25)"}`:""
+                              }}>
+                                <span style={{color:isW?"#4ade80":"#f87171",fontSize:12,fontWeight:900,lineHeight:1}}>{e.result}</span>
+                                <span style={{color:isW?"#4ade80":"#f87171",fontSize:7,lineHeight:1.2,opacity:0.9}}>{e.paid?"✓paid":"unpd"}</span>
+                              </div>
+                            ) : (
+                              <span style={{color:"rgba(255,255,255,0.12)",fontSize:13}}>—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+
+                      {/* Wins / Losses */}
+                      <td style={{...ctd, textAlign:"center", borderLeft:"1px solid rgba(255,255,255,0.07)"}}>
+                        <span style={{color:"#4ade80",fontSize:13,fontWeight:800}}>{t.wins}</span>
+                      </td>
+                      <td style={{...ctd, textAlign:"center"}}>
+                        <span style={{color:"#f87171",fontSize:13,fontWeight:800}}>{t.losses}</span>
+                      </td>
+
+                      {/* Paid / Due */}
+                      <td style={{...ctd, textAlign:"center", borderLeft:"1px solid rgba(255,255,255,0.07)"}}>
+                        <span style={{color:"#ffd700",fontSize:13,fontWeight:800}}>₹{t.paid}</span>
+                      </td>
+                      <td style={{...ctd, textAlign:"center"}}>
+                        <span style={{color:t.due>0?"#f87171":"rgba(74,222,128,0.5)",fontSize:13,fontWeight:800}}>₹{t.due}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* Grand total row */}
+                <tr style={{background:"rgba(255,154,60,0.12)",borderTop:"2px solid rgba(255,154,60,0.35)"}}>
+                  <td style={{...ctd, paddingLeft:10, color:"#ff9a3c", fontSize:12, fontWeight:800}}>TOTAL</td>
+                  {sessions.map(s=>{
+                    const colPaid = Object.values(s.entries||{}).reduce((sum,e)=>e?.paid?sum+amtFor(e.result):sum,0);
+                    return (
+                      <td key={s.date} style={{...ctd,textAlign:"center"}}>
+                        <span style={{color:"rgba(255,215,0,0.7)",fontSize:11,fontWeight:700}}>₹{colPaid}</span>
+                      </td>
+                    );
+                  })}
+                  <td style={{...ctd,borderLeft:"1px solid rgba(255,255,255,0.07)"}}/>
+                  <td style={{...ctd}}/>
+                  <td style={{...ctd,textAlign:"center",borderLeft:"1px solid rgba(255,255,255,0.07)"}}>
+                    <span style={{color:"#ffd700",fontSize:14,fontWeight:900}}>₹{grandTotal}</span>
+                  </td>
+                  <td style={{...ctd,textAlign:"center"}}>
+                    <span style={{color:grandDue>0?"#f87171":"#4ade80",fontSize:14,fontWeight:900}}>₹{grandDue}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Legend */}
+            <div style={{display:"flex",gap:14,marginTop:14,justifyContent:"center",flexWrap:"wrap"}}>
+              {[
+                {bg:"rgba(74,222,128,0.28)",border:"#4ade80",  label:"W ✓ paid"},
+                {bg:"rgba(74,222,128,0.07)",border:"rgba(74,222,128,0.35)",label:"W unpaid"},
+                {bg:"rgba(248,113,113,0.28)",border:"#f87171", label:"L ✓ paid"},
+                {bg:"rgba(248,113,113,0.07)",border:"rgba(248,113,113,0.35)",label:"L unpaid"},
+              ].map((l,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:5}}>
+                  <div style={{width:12,height:12,borderRadius:3,background:l.bg,border:`1.5px solid ${l.border}`}}/>
+                  <span style={{color:"rgba(255,255,255,0.35)",fontSize:9}}>{l.label}</span>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
 
             {/* Footer */}
-            <div style={{textAlign:"center",marginTop:20,paddingTop:14,borderTop:"1px solid rgba(255,154,60,0.2)"}}>
-              <div style={{color:"rgba(255,200,120,0.25)",fontSize:10}}>Generated by Boyz Party Tracker 🏏</div>
+            <div style={{textAlign:"center",marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,154,60,0.2)"}}>
+              <div style={{color:"rgba(255,200,120,0.2)",fontSize:9,letterSpacing:1}}>BOYZ PARTY TRACKER · LEGENDS CRICKET ASSOCIATION 🏏</div>
             </div>
           </div>
         </div>
@@ -829,3 +868,6 @@ const btnOrange  = {width:"100%",background:"rgba(255,154,60,0.12)",color:"#ff9a
 const btnGhost   = {width:"100%",background:"rgba(255,255,255,0.04)",color:"rgba(255,200,120,0.5)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"13px",fontSize:13,cursor:"pointer"};
 const btnWhatsApp= {width:"100%",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",border:"none",borderRadius:14,padding:"15px",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 20px rgba(37,211,102,0.3)"};
 const btnShare   = {width:"100%",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",border:"none",borderRadius:14,padding:"15px",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 20px rgba(37,211,102,0.3)"};
+// Card table styles
+const cth = {padding:"9px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderBottom:"2px solid rgba(255,154,60,0.3)",whiteSpace:"nowrap"};
+const ctd = {padding:"7px 4px",borderBottom:"1px solid rgba(255,255,255,0.05)"};
